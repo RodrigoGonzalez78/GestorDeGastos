@@ -1,1 +1,1 @@
-# Aplicacion para Gestion de Gastos y Ingresos
+# Aplicacion para Gestión de Gastos y Ingresos
