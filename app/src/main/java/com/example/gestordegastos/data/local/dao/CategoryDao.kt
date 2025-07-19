@@ -21,6 +21,8 @@ interface CategoryDao {
 
     @Delete
     suspend fun delete(category: CategoryEntity): Int
+
+
 }
 
 

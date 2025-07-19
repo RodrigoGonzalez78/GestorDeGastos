@@ -1,11 +1,15 @@
 package com.example.gestordegastos.presenter.new_operation
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,29 +19,42 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Checkroom
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Movie
+import androidx.compose.material.icons.filled.PhoneAndroid
+import androidx.compose.material.icons.filled.Receipt
 import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.TrendingDown
+import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Work
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenuItem
@@ -46,12 +63,18 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -61,11 +84,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -77,6 +103,13 @@ import java.util.Calendar
 import java.util.Locale
 
 
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDefaults
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import java.util.Date
+
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewOperationScreen(
@@ -84,55 +117,100 @@ fun NewOperationScreen(
     navController: NavHostController,
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
-
+    val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(uiState.success) {
         if (uiState.success) {
-
+            snackbarHostState.showSnackbar(
+                message = "Operación guardada exitosamente",
+                actionLabel = "OK"
+            )
+            navController.popBackStack()
         }
     }
 
-
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
-            // Show snackbar or toast
-            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+            snackbarHostState.showSnackbar(
+                message = error,
+                actionLabel = "Cerrar"
+            )
             viewModel.clearError()
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
-    ) {
-
-        TopAppBar(
-            title = { Text("Nueva Operación") },
-            navigationIcon = {
-                IconButton(onClick ={}) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver")
-                }
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.White,
-                titleContentColor = Color.Black
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Nueva Operación",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF0F172A)
+                    )
+                },
+                navigationIcon = {
+                    IconButton(
+                        onClick = { navController.popBackStack() },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(
+                                Color(0xFFF8FAFC),
+                                CircleShape
+                            )
+                            .border(
+                                1.dp,
+                                Color(0xFFE2E8F0),
+                                CircleShape
+                            )
+                    ) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
+                )
             )
-        )
-
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color(0xFFFAFAFA)
+    ) { padding ->
         if (uiState.isLoading) {
             Box(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator()
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CircularProgressIndicator(
+                        color = Color(0xFF0F172A),
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Text(
+                        "Guardando operación...",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Color(0xFF64748B),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         } else {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
+                    .padding(padding),
+                contentPadding = PaddingValues(20.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
                 item {
@@ -174,16 +252,25 @@ fun NewOperationScreen(
                         onClick = viewModel::saveOperation,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(48.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF1976D2)
+                            containerColor = Color(0xFF0F172A),
+                            disabledContainerColor = Color(0xFFE2E8F0)
                         ),
-                        shape = RoundedCornerShape(16.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = uiState.selectedOperationTypeId != null &&
+                                uiState.amount.isNotBlank() &&
+                                uiState.selectedCategoryId != null
                     ) {
                         Text(
-                            text = "GUARDAR",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
+                            text = "Guardar Operación",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (uiState.selectedOperationTypeId != null &&
+                                uiState.amount.isNotBlank() &&
+                                uiState.selectedCategoryId != null
+                            )
+                                Color.White else Color(0xFF94A3B8)
                         )
                     }
                 }
@@ -216,57 +303,60 @@ fun OperationTypeSection(
     selectedOperationTypeId: Int?,
     onOperationTypeSelected: (Int) -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column {
-            Text(
-                text = "Tipo de Operación",
-                modifier = Modifier.padding(16.dp),
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF757575)
-            )
+        Text(
+            text = "Tipo de Operación",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF0F172A)
+        )
 
-            Divider(color = Color(0xFFE0E0E0))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            operationTypes.forEach { operationType ->
+                val isSelected = selectedOperationTypeId == operationType.id
+                val isExpense = operationType.id == 1
+                val color = if (isExpense) Color(0xFFDC2626) else Color(0xFF059669)
+                val icon =
+                    if (isExpense) Icons.AutoMirrored.Filled.TrendingDown else Icons.Default.TrendingUp
 
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                operationTypes.forEach { operationType ->
-                    val isSelected = selectedOperationTypeId == operationType.id
-                    val isExpense = operationType.id == 1 // Assuming id=1 is expense
-                    val color = if (isExpense) Color(0xFFEF5350) else Color(0xFF66BB6A)
-                    val icon = if (isExpense) Icons.Default.KeyboardArrowDown else Icons.Default.KeyboardArrowUp
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { onOperationTypeSelected(operationType.id) }
-                            .background(
-                                if (isSelected) color.copy(alpha = 0.1f) else Color.Transparent
-                            )
-                            .padding(vertical = 16.dp),
-                        contentAlignment = Alignment.Center
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { onOperationTypeSelected(operationType.id) },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isSelected) color.copy(alpha = 0.05f) else Color.White
+                    ),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(
+                        width = if (isSelected) 2.dp else 1.dp,
+                        color = if (isSelected) color else Color(0xFFE2E8F0)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = if (isSelected) color else Color.Gray,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = operationType.description,
-                                color = if (isSelected) color else Color(0xFF757575),
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = if (isSelected) color else Color(0xFF94A3B8),
+                            modifier = Modifier.size(24.dp)
+                        )
+
+                        Text(
+                            text = operationType.description,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = if (isSelected) color else Color(0xFF64748B),
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                            textAlign = TextAlign.Center
+                        )
                     }
                 }
             }
@@ -274,7 +364,7 @@ fun OperationTypeSection(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun AmountSection(
     amount: String,
@@ -282,71 +372,113 @@ fun AmountSection(
     onAmountChange: (String) -> Unit
 ) {
     val color = when (selectedOperationTypeId) {
-        1 -> Color(0xFFD32F2F) // Red for expense
-        2 -> Color(0xFF388E3C) // Green for income
-        else -> Color.Gray
+        1 -> Color(0xFFDC2626) // Red for expense
+        2 -> Color(0xFF059669) // Green for income
+        else -> Color(0xFF64748B)
     }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Text(
+            text = "Monto",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF0F172A)
+        )
+
         OutlinedTextField(
             value = amount,
             onValueChange = onAmountChange,
-            label = { Text("Monto") },
+            placeholder = {
+                Text(
+                    "0.00",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color(0xFF94A3B8)
+                )
+            },
             leadingIcon = {
                 Icon(
                     Icons.Default.AttachMoney,
                     contentDescription = null,
-                    tint = color
+                    tint = color,
+                    modifier = Modifier.size(20.dp)
                 )
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent
+                focusedBorderColor = color,
+                unfocusedBorderColor = Color(0xFFE2E8F0),
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
             ),
-            textStyle = LocalTextStyle.current.copy(
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
+            textStyle = MaterialTheme.typography.headlineMedium.copy(
+                fontWeight = FontWeight.SemiBold,
                 color = color
-            )
+            ),
+            shape = RoundedCornerShape(8.dp)
         )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun DateSection(
     date: String,
     onDateClick: () -> Unit
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Text(
+            text = "Fecha",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF0F172A)
+        )
+
+        val interactionSource = remember { MutableInteractionSource() }
+
         OutlinedTextField(
             value = date,
             onValueChange = { },
-            label = { Text("Fecha") },
+            placeholder = { Text("Seleccionar fecha", color = Color(0xFF94A3B8)) },
             leadingIcon = {
-                Icon(Icons.Default.CalendarToday, contentDescription = null)
+                Icon(
+                    Icons.Default.CalendarToday,
+                    contentDescription = null,
+                    tint = Color(0xFF64748B),
+                    modifier = Modifier.size(18.dp)
+                )
+            },
+            trailingIcon = {
+                Icon(
+                    Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = Color(0xFF94A3B8),
+                    modifier = Modifier.size(18.dp)
+                )
             },
             readOnly = true,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
-                .clickable { onDateClick() },
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null
+                ) { onDateClick() },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent
-            )
+                focusedBorderColor = Color(0xFF0F172A),
+                unfocusedBorderColor = Color(0xFFE2E8F0),
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                disabledBorderColor = Color(0xFFE2E8F0),
+                disabledContainerColor = Color.White,
+                disabledTextColor = Color(0xFF0F172A)
+            ),
+            shape = RoundedCornerShape(8.dp),
+            enabled = false,
+            interactionSource = interactionSource
         )
     }
 }
@@ -360,133 +492,211 @@ fun CategorySection(
     onAddCategoryClick: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val selectedCategory = categories.firstOrNull { it.id == selectedCategoryId }
 
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Column {
-            Row(
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Categoría",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF0F172A)
+            )
+
+            IconButton(
+                onClick = onAddCategoryClick,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Categoría",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF757575)
-                )
-
-                IconButton(onClick = onAddCategoryClick) {
-                    Icon(
-                        Icons.Default.AddCircleOutline,
-                        contentDescription = "Agregar categoría",
-                        tint = Color(0xFF1976D2)
+                    .size(32.dp)
+                    .background(
+                        Color(0xFFF8FAFC),
+                        CircleShape
                     )
-                }
+                    .border(
+                        1.dp,
+                        Color(0xFFE2E8F0),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Default.Add,
+                    contentDescription = "Agregar categoría",
+                    tint = Color(0xFF64748B),
+                    modifier = Modifier.size(16.dp)
+                )
             }
+        }
 
-            Divider(color = Color(0xFFE0E0E0))
-
-            ExposedDropdownMenuBox(
-                expanded = expanded,
-                onExpandedChange = { expanded = !expanded },
-                modifier = Modifier.padding(16.dp)
-            ) {
-                OutlinedTextField(
-                    value = categories.firstOrNull() { it.id == selectedCategoryId }?.description ?: "",
-                    onValueChange = { },
-                    readOnly = true,
-                    placeholder = { Text("Seleccionar categoría") },
-                    trailingIcon = {
-                        Icon(
-                            Icons.Default.KeyboardArrowDown,
-                            contentDescription = null
-                        )
-                    },
-                    modifier = Modifier
-                        .menuAnchor()
-                        .fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded }
+        ) {
+            OutlinedTextField(
+                value = selectedCategory?.description ?: "",
+                onValueChange = { },
+                readOnly = true,
+                placeholder = { Text("Seleccionar categoría", color = Color(0xFF94A3B8)) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = selectedCategory?.let { getCategoryIcon(it.description) }
+                            ?: Icons.Default.Category,
+                        contentDescription = null,
+                        tint = Color(0xFF64748B),
+                        modifier = Modifier.size(18.dp)
                     )
-                )
+                },
+                trailingIcon = {
+                    Icon(
+                        Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = Color(0xFF94A3B8),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .rotate(if (expanded) 180f else 0f)
+                    )
+                },
+                modifier = Modifier
+                    .menuAnchor()
+                    .fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF0F172A),
+                    unfocusedBorderColor = Color(0xFFE2E8F0),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                ),
+                shape = RoundedCornerShape(8.dp)
+            )
 
-                ExposedDropdownMenu(
-                    expanded = expanded,
-                    onDismissRequest = { expanded = false }
-                ) {
-                    categories.forEach { categoryItem ->
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = getCategoryIcon(categoryItem.description),
-                                        contentDescription = null,
-                                        tint = Color(0xFF757575),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(categoryItem.description)
-                                }
-                            },
-                            onClick = {
-                                onCategorySelected(categoryItem.id)
-                                expanded = false
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.background(Color.White)
+            ) {
+                categories.forEach { categoryItem ->
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = getCategoryIcon(categoryItem.description),
+                                    contentDescription = null,
+                                    tint = Color(0xFF64748B),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    categoryItem.description,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color(0xFF0F172A)
+                                )
                             }
+                        },
+                        onClick = {
+                            onCategorySelected(categoryItem.id)
+                            expanded = false
+                        },
+                        modifier = Modifier.background(
+                            if (selectedCategoryId == categoryItem.id)
+                                Color(0xFFF8FAFC)
+                            else
+                                Color.Transparent
                         )
-                    }
+                    )
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DatePickerDialog(
     currentDate: String,
     onDateSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val context = LocalContext.current
-    val calendar = Calendar.getInstance()
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = try {
+            val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+            dateFormat.parse(currentDate)?.time
+        } catch (e: Exception) {
+            System.currentTimeMillis()
+        }
+    )
 
-    // Parse current date
-    try {
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        val date = dateFormat.parse(currentDate)
-        date?.let { calendar.time = it }
-    } catch (e: Exception) {
-        // Use current date if parsing fails
-    }
-
-    LaunchedEffect(Unit) {
-        val datePickerDialog = android.app.DatePickerDialog(
-            context,
-            { _, year, month, dayOfMonth ->
-                val selectedDate = Calendar.getInstance().apply {
-                    set(year, month, dayOfMonth)
-                }
-                val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-                onDateSelected(dateFormat.format(selectedDate.time))
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            Button(
+                onClick = {
+                    datePickerState.selectedDateMillis?.let { millis ->
+                        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+                        val selectedDate = Date(millis)
+                        onDateSelected(dateFormat.format(selectedDate))
+                    }
+                    onDismiss()
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF0F172A)
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    "Confirmar",
+                    color = Color.White,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss,
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text(
+                    "Cancelar",
+                    color = Color(0xFF64748B)
+                )
+            }
+        },
+        colors = DatePickerDefaults.colors(
+            containerColor = Color.White
+        ),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        DatePicker(
+            state = datePickerState,
+            colors = DatePickerDefaults.colors(
+                containerColor = Color.White,
+                titleContentColor = Color(0xFF0F172A),
+                headlineContentColor = Color(0xFF0F172A),
+                weekdayContentColor = Color(0xFF64748B),
+                subheadContentColor = Color(0xFF64748B),
+                yearContentColor = Color(0xFF0F172A),
+                currentYearContentColor = Color(0xFF0F172A),
+                selectedYearContentColor = Color.White,
+                selectedYearContainerColor = Color(0xFF0F172A),
+                dayContentColor = Color(0xFF0F172A),
+                disabledDayContentColor = Color(0xFF94A3B8),
+                selectedDayContentColor = Color.White,
+                disabledSelectedDayContentColor = Color.White,
+                selectedDayContainerColor = Color(0xFF0F172A),
+                disabledSelectedDayContainerColor = Color(0xFF94A3B8),
+                todayContentColor = Color(0xFF0F172A),
+                todayDateBorderColor = Color(0xFF0F172A)
+            )
         )
-
-        datePickerDialog.setOnDismissListener { onDismiss() }
-        datePickerDialog.show()
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewCategoryDialog(
     onCategoryAdded: (String) -> Unit,
@@ -496,44 +706,98 @@ fun NewCategoryDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Nueva Categoría") },
-        text = {
-            OutlinedTextField(
-                value = categoryName,
-                onValueChange = { categoryName = it },
-                label = { Text("Nombre de la categoría") },
-                modifier = Modifier.fillMaxWidth()
+        title = {
+            Text(
+                "Nueva Categoría",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF0F172A)
             )
         },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    "Ingresa el nombre de la nueva categoría:",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFF64748B)
+                )
+
+                OutlinedTextField(
+                    value = categoryName,
+                    onValueChange = { categoryName = it },
+                    placeholder = { Text("Nombre de la categoría", color = Color(0xFF94A3B8)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Category,
+                            contentDescription = null,
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF0F172A),
+                        unfocusedBorderColor = Color(0xFFE2E8F0),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    singleLine = true
+                )
+            }
+        },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = {
                     if (categoryName.isNotBlank()) {
                         onCategoryAdded(categoryName.trim())
+                        onDismiss()
                     }
-                }
+                },
+                enabled = categoryName.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF0F172A),
+                    disabledContainerColor = Color(0xFFE2E8F0)
+                ),
+                shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Guardar")
+                Text(
+                    "Guardar",
+                    color = if (categoryName.isNotBlank()) Color.White else Color(0xFF94A3B8)
+                )
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+            OutlinedButton(
+                onClick = onDismiss,
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Cancelar", color = Color(0xFF64748B))
             }
-        }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(12.dp)
     )
 }
 
 fun getCategoryIcon(category: String): ImageVector {
     return when (category.lowercase()) {
-        "comida", "alimento" -> Icons.Default.Restaurant
-        "transporte" -> Icons.Default.DirectionsCar
-        "casa", "hogar" -> Icons.Default.Home
-        "salud" -> Icons.Default.MedicalServices
-        "entretenimiento" -> Icons.Default.Movie
-        "educación" -> Icons.Default.School
-        "salario", "sueldo" -> Icons.Default.Work
+        "comida", "alimento", "alimentación" -> Icons.Default.Restaurant
+        "transporte", "combustible" -> Icons.Default.DirectionsCar
+        "casa", "hogar", "vivienda" -> Icons.Default.Home
+        "salud", "medicina", "médico" -> Icons.Default.MedicalServices
+        "entretenimiento", "ocio" -> Icons.Default.Movie
+        "educación", "estudio" -> Icons.Default.School
+        "salario", "sueldo", "trabajo" -> Icons.Default.Work
         "ahorro", "inversión" -> Icons.Default.Savings
+        "compras", "shopping" -> Icons.Default.ShoppingCart
+        "servicios", "facturas" -> Icons.Default.Receipt
+        "ropa", "vestimenta" -> Icons.Default.Checkroom
+        "tecnología" -> Icons.Default.PhoneAndroid
         else -> Icons.Default.Category
     }
 }
+

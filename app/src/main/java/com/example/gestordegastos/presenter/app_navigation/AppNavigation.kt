@@ -6,6 +6,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.gestordegastos.presenter.home_screen.HomeScreen
 import com.example.gestordegastos.presenter.new_operation.NewOperationScreen
+import com.example.gestordegastos.presenter.statistics.StatisticsScreen
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -35,11 +36,11 @@ fun AppNavigation() {
             )
         }
 
-//        composable<StatisticsRoute> {
-//            StatisticsScreen(
-//                navController = navController,
-//            )
-//        }
+        composable<StatisticsRoute> {
+            StatisticsScreen(
+                navController = navController,
+            )
+        }
 
     }
 }

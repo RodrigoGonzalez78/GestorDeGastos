@@ -22,4 +22,11 @@ interface OperationDao {
 
     @Delete
     suspend fun delete(operation: OperationEntity): Int
+
+    @Query("SELECT * FROM operation WHERE date BETWEEN :startDate AND :endDate AND type_operation = :typeId")
+    suspend fun getOperationsByDateRangeAndType(startDate: String, endDate: String, typeId: Int): List<OperationEntity>
+
+    @Query("SELECT * FROM operation WHERE date BETWEEN :startDate AND :endDate AND category = :categoryId")
+    suspend fun getOperationsByDateRangeAndCategory(startDate: String, endDate: String, categoryId: Int): List<OperationEntity>
+
 }
