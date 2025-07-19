@@ -1,6 +1,11 @@
 package com.example.gestordegastos.domain.repository
 
+import com.example.gestordegastos.domain.model.CategoryExpense
+import com.example.gestordegastos.domain.model.CategoryIncome
+import com.example.gestordegastos.domain.model.CategoryTrend
+import com.example.gestordegastos.domain.model.MonthlyTotal
 import com.example.gestordegastos.domain.model.Operation
+import com.example.gestordegastos.domain.model.YearlyComparison
 import kotlinx.coroutines.flow.Flow
 
 interface StatisticsRepository {
@@ -13,38 +18,5 @@ interface StatisticsRepository {
     suspend fun getCategoryTrends(categoryId: Int, months: Int): Flow<List<CategoryTrend>>
 }
 
-data class CategoryExpense(
-    val categoryId: Int,
-    val categoryName: String,
-    val totalAmount: Double,
-    val percentage: Float,
-    val operationCount: Int
-)
 
-data class CategoryIncome(
-    val categoryId: Int,
-    val categoryName: String,
-    val totalAmount: Double,
-    val percentage: Float,
-    val operationCount: Int
-)
 
-data class MonthlyTotal(
-    val month: Int,
-    val year: Int,
-    val totalIncome: Double,
-    val totalExpenses: Double,
-    val balance: Double
-)
-
-data class YearlyComparison(
-    val year: Int,
-    val totalIncome: Double,
-    val totalExpenses: Double,
-    val balance: Double
-)
-
-data class CategoryTrend(
-    val month: String,
-    val amount: Double
-)

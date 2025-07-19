@@ -1,21 +1,6 @@
 package com.example.gestordegastos.di
 
 import android.content.Context
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Checkroom
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MedicalServices
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Work
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase

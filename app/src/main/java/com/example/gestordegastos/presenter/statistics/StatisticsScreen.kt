@@ -62,10 +62,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
-import com.example.gestordegastos.domain.repository.CategoryExpense
-import com.example.gestordegastos.domain.repository.CategoryIncome
-import com.example.gestordegastos.domain.repository.MonthlyTotal
-import com.example.gestordegastos.domain.repository.YearlyComparison
+import com.example.gestordegastos.domain.model.CategoryExpense
+import com.example.gestordegastos.domain.model.CategoryIncome
+import com.example.gestordegastos.domain.model.MonthlyTotal
+import com.example.gestordegastos.domain.model.YearlyComparison
 import java.text.NumberFormat
 import java.util.Calendar
 import java.util.Locale

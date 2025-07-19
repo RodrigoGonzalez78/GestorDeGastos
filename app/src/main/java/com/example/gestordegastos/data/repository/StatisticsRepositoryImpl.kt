@@ -5,12 +5,12 @@ import com.example.gestordegastos.data.local.dao.CategoryDao
 import com.example.gestordegastos.data.local.dao.OperationDao
 import com.example.gestordegastos.data.mappers.toOperation
 import com.example.gestordegastos.domain.model.Operation
-import com.example.gestordegastos.domain.repository.CategoryExpense
-import com.example.gestordegastos.domain.repository.CategoryIncome
-import com.example.gestordegastos.domain.repository.CategoryTrend
-import com.example.gestordegastos.domain.repository.MonthlyTotal
+import com.example.gestordegastos.domain.model.CategoryExpense
+import com.example.gestordegastos.domain.model.CategoryIncome
+import com.example.gestordegastos.domain.model.CategoryTrend
+import com.example.gestordegastos.domain.model.MonthlyTotal
 import com.example.gestordegastos.domain.repository.StatisticsRepository
-import com.example.gestordegastos.domain.repository.YearlyComparison
+import com.example.gestordegastos.domain.model.YearlyComparison
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first

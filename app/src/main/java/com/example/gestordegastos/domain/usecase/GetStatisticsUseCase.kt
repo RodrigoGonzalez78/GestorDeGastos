@@ -1,13 +1,12 @@
 package com.example.gestordegastos.domain.usecase
 
-import com.example.gestordegastos.domain.repository.CategoryExpense
-import com.example.gestordegastos.domain.repository.CategoryIncome
-import com.example.gestordegastos.domain.repository.MonthlyTotal
+import com.example.gestordegastos.domain.model.CategoryExpense
+import com.example.gestordegastos.domain.model.CategoryIncome
+import com.example.gestordegastos.domain.model.MonthlyTotal
 import com.example.gestordegastos.domain.repository.StatisticsRepository
-import com.example.gestordegastos.domain.repository.YearlyComparison
+import com.example.gestordegastos.domain.model.YearlyComparison
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
-import javax.inject.Singleton
 
 
 class GetMonthlyExpensesByCategoryUseCase @Inject constructor(

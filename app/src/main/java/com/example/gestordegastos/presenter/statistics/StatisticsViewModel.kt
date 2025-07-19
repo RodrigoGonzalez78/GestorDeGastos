@@ -2,10 +2,10 @@ package com.example.gestordegastos.presenter.statistics
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.gestordegastos.domain.repository.CategoryExpense
-import com.example.gestordegastos.domain.repository.CategoryIncome
-import com.example.gestordegastos.domain.repository.MonthlyTotal
-import com.example.gestordegastos.domain.repository.YearlyComparison
+import com.example.gestordegastos.domain.model.CategoryExpense
+import com.example.gestordegastos.domain.model.CategoryIncome
+import com.example.gestordegastos.domain.model.MonthlyTotal
+import com.example.gestordegastos.domain.model.YearlyComparison
 import com.example.gestordegastos.domain.usecase.GetMonthlyExpensesByCategoryUseCase
 import com.example.gestordegastos.domain.usecase.GetMonthlyIncomesByCategoryUseCase
 import com.example.gestordegastos.domain.usecase.GetMonthlyTotalsUseCase
