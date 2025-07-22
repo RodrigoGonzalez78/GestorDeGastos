@@ -19,6 +19,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -106,7 +109,9 @@ import java.util.Locale
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.rememberDatePickerState
+import com.example.gestordegastos.utils.CategoryIcon
+import com.example.gestordegastos.utils.getIconForName
+import com.example.gestordegastos.utils.iconsCategory
 import java.util.Date
 
 
@@ -542,13 +547,14 @@ fun CategorySection(
                 readOnly = true,
                 placeholder = { Text("Seleccionar categoría", color = Color(0xFF94A3B8)) },
                 leadingIcon = {
-                    Icon(
-                        imageVector = selectedCategory?.let { getCategoryIcon(it.description) }
-                            ?: Icons.Default.Category,
-                        contentDescription = null,
-                        tint = Color(0xFF64748B),
-                        modifier = Modifier.size(18.dp)
-                    )
+                    selectedCategory?.let { getIconForName (it.icon) }?.let {
+                        Icon(
+                            imageVector = it,
+                            contentDescription = null,
+                            tint = Color(0xFF64748B),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 },
                 trailingIcon = {
                     Icon(
@@ -585,7 +591,7 @@ fun CategorySection(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 Icon(
-                                    imageVector = getCategoryIcon(categoryItem.description),
+                                    imageVector = getIconForName(categoryItem.icon),
                                     contentDescription = null,
                                     tint = Color(0xFF64748B),
                                     modifier = Modifier.size(16.dp)
@@ -696,13 +702,14 @@ fun DatePickerDialog(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun NewCategoryDialog(
-    onCategoryAdded: (String) -> Unit,
+    onCategoryAdded: (String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var categoryName by remember { mutableStateOf("") }
+    var selectedIcon by remember { mutableStateOf<CategoryIcon>(iconsCategory[0]) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -715,11 +722,9 @@ fun NewCategoryDialog(
             )
         },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "Ingresa el nombre de la nueva categoría:",
+                    "Nombre de la categoría:",
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFF64748B)
                 )
@@ -727,10 +732,10 @@ fun NewCategoryDialog(
                 OutlinedTextField(
                     value = categoryName,
                     onValueChange = { categoryName = it },
-                    placeholder = { Text("Nombre de la categoría", color = Color(0xFF94A3B8)) },
+                    placeholder = { Text("Category name", color = Color(0xFF94A3B8)) },
                     leadingIcon = {
                         Icon(
-                            Icons.Default.Category,
+                            selectedIcon.icon,
                             contentDescription = null,
                             tint = Color(0xFF64748B),
                             modifier = Modifier.size(18.dp)
@@ -746,17 +751,41 @@ fun NewCategoryDialog(
                     shape = RoundedCornerShape(8.dp),
                     singleLine = true
                 )
+
+                Text(
+                    "Selecciona un ícono:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color(0xFF64748B)
+                )
+
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(5),
+                    modifier = Modifier
+                        .height(160.dp)
+                        .padding(top = 8.dp)
+                ) {
+                    items(iconsCategory) { item ->
+                        IconButton(onClick = { selectedIcon = item }) {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.name,
+                                tint = if (selectedIcon == item) Color(0xFF0F172A) else Color.Gray,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (categoryName.isNotBlank()) {
-                        onCategoryAdded(categoryName.trim())
+                    selectedIcon?.let {
+                        onCategoryAdded(categoryName.trim(), it.name)
                         onDismiss()
                     }
                 },
-                enabled = categoryName.isNotBlank(),
+                enabled = categoryName.isNotBlank() && selectedIcon != null,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color(0xFF0F172A),
                     disabledContainerColor = Color(0xFFE2E8F0)
@@ -765,7 +794,7 @@ fun NewCategoryDialog(
             ) {
                 Text(
                     "Guardar",
-                    color = if (categoryName.isNotBlank()) Color.White else Color(0xFF94A3B8)
+                    color = if (categoryName.isNotBlank() && selectedIcon != null) Color.White else Color(0xFF94A3B8)
                 )
             }
         },
@@ -781,23 +810,5 @@ fun NewCategoryDialog(
         containerColor = Color.White,
         shape = RoundedCornerShape(12.dp)
     )
-}
-
-fun getCategoryIcon(category: String): ImageVector {
-    return when (category.lowercase()) {
-        "comida", "alimento", "alimentación" -> Icons.Default.Restaurant
-        "transporte", "combustible" -> Icons.Default.DirectionsCar
-        "casa", "hogar", "vivienda" -> Icons.Default.Home
-        "salud", "medicina", "médico" -> Icons.Default.MedicalServices
-        "entretenimiento", "ocio" -> Icons.Default.Movie
-        "educación", "estudio" -> Icons.Default.School
-        "salario", "sueldo", "trabajo" -> Icons.Default.Work
-        "ahorro", "inversión" -> Icons.Default.Savings
-        "compras", "shopping" -> Icons.Default.ShoppingCart
-        "servicios", "facturas" -> Icons.Default.Receipt
-        "ropa", "vestimenta" -> Icons.Default.Checkroom
-        "tecnología" -> Icons.Default.PhoneAndroid
-        else -> Icons.Default.Category
-    }
 }
 

@@ -31,7 +31,7 @@ fun CategoryEntity.toCategory(): Category {
     return Category(
         id = this.id,
         description = this.description,
-        color = this.color,
+        icon = this.icon,
     )
 }
 
@@ -39,7 +39,7 @@ fun Category.toCategoryEntity(): CategoryEntity {
     return CategoryEntity(
         id = this.id,
         description = this.description,
-        color = this.color,
+        icon = this.icon,
     )
 }
 

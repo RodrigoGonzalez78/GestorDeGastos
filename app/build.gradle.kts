@@ -14,7 +14,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.gestordegastos"
+        applicationId = "com.rocketstudio99.gestor_de_gastos"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

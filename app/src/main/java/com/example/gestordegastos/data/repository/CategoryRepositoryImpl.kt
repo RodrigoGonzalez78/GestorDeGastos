@@ -27,10 +27,6 @@ class CategoryRepositoryImpl @Inject constructor(
         }
     }
 
-    suspend fun update(category: Category): Int {
-        return categoryDao.update(category.toCategoryEntity())
-    }
-
     suspend fun delete(category: Category): Int {
         return categoryDao.delete(category.toCategoryEntity())
     }

@@ -12,7 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.gestordegastos.presenter.app_navigation.AppNavigation
-import com.example.gestordegastos.ui.theme.GestorDeGastosTheme
+import com.example.gestordegastos.presenter.ui.theme.GestorDeGastosTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 

@@ -11,12 +11,9 @@ import com.example.gestordegastos.domain.usecase.GetAllOperationTypesUseCase
 import com.example.gestordegastos.domain.usecase.InsertCategoryUseCase
 import com.example.gestordegastos.domain.usecase.InsertOperationUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -95,14 +92,14 @@ class NewOperationViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showDatePicker = false)
     }
 
-    fun addNewCategory(description: String) {
+    fun addNewCategory(description: String, icon: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             try {
                 val newCategory = Category(
                     description = description,
-                    color = Color.RED.toString()
+                    icon = icon
                 )
                 insertCategoryUseCase(newCategory)
 

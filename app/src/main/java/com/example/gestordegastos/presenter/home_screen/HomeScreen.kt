@@ -54,9 +54,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.example.gestordegastos.domain.model.Category
 import com.example.gestordegastos.domain.model.Operation
 import com.example.gestordegastos.presenter.app_navigation.NewOperationRoute
 import com.example.gestordegastos.presenter.app_navigation.StatisticsRoute
+import com.example.gestordegastos.utils.getIconForName
 import java.text.NumberFormat
 import java.util.*
 @OptIn(ExperimentalMaterial3Api::class)
@@ -216,7 +218,7 @@ fun BalanceSection(total: Double, ingresos: Double, gastos: Double) {
                     }
 
                     Icon(
-                        if (total >= 0) Icons.Default.TrendingUp else Icons.Default.TrendingDown,
+                        if (total >= 0) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
                         contentDescription = null,
                         tint = if (total >= 0) Color(0xFF10B981) else Color(0xFFEF4444),
                         modifier = Modifier.size(32.dp)
@@ -362,7 +364,7 @@ fun QuickActionCard(
 fun TabbedOperations(
     income: List<Operation>,
     expenses: List<Operation>,
-    getCategoria: suspend (Int) -> String,
+    getCategoria: suspend (Int) -> Category?,
     onDelete: (Int) -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -508,12 +510,16 @@ fun EmptyStateMessage(message: String, icon: ImageVector) {
 @Composable
 fun OperationCard(
     operation: Operation,
-    getCategory: suspend (Int) -> String,
+    getCategory: suspend (Int) -> Category?,
     onDelete: (Int) -> Unit
 ) {
-    val categoria by produceState<String?>(initialValue = null, operation) {
+    val categoria by produceState<Category?>(
+        initialValue = null
+    ) {
         value = getCategory(operation.categoryId)
     }
+
+    val categoryIcon= getIconForName(categoria?.icon ?:"")
 
     var showDeleteDialog by remember { mutableStateOf(false) }
 
@@ -548,7 +554,7 @@ fun OperationCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        getCategoryIcon(categoria ?: ""),
+                        categoryIcon,
                         contentDescription = null,
                         tint = if (operation.typeOperationId == 1) Color(0xFFEF4444) else Color(0xFF10B981),
                         modifier = Modifier.size(20.dp)
@@ -559,7 +565,7 @@ fun OperationCard(
                     verticalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
                     Text(
-                        categoria ?: "Sin categoría",
+                        categoria?.description ?: "Sin categoría",
                         style = MaterialTheme.typography.titleMedium,
                         color = Color(0xFF0F172A),
                         fontWeight = FontWeight.SemiBold
@@ -645,23 +651,6 @@ fun OperationCard(
     }
 }
 
-fun getCategoryIcon(category: String): ImageVector {
-    return when (category.lowercase()) {
-        "comida", "alimento", "alimentación" -> Icons.Default.Restaurant
-        "transporte", "combustible" -> Icons.Default.DirectionsCar
-        "casa", "hogar", "vivienda" -> Icons.Default.Home
-        "salud", "medicina", "médico" -> Icons.Default.MedicalServices
-        "entretenimiento", "ocio" -> Icons.Default.Movie
-        "educación", "estudio" -> Icons.Default.School
-        "salario", "sueldo", "trabajo" -> Icons.Default.Work
-        "ahorro", "inversión" -> Icons.Default.Savings
-        "compras", "shopping" -> Icons.Default.ShoppingCart
-        "servicios", "facturas" -> Icons.Default.Receipt
-        "ropa", "vestimenta" -> Icons.Default.Checkroom
-        "tecnología" -> Icons.Default.PhoneAndroid
-        else -> Icons.Default.Category
-    }
-}
 
 fun formatCurrency(amount: Double): String {
     return NumberFormat.getCurrencyInstance(Locale("es", "AR")).format(amount)

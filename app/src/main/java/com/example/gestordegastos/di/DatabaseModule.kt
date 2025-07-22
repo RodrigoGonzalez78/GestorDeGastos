@@ -21,19 +21,18 @@ import kotlinx.coroutines.launch
 import javax.inject.Singleton
 
 val categories = listOf(
-    CategoryEntity(description = "Salud", color = "#00FF00"),
-    CategoryEntity(description = "Transporte", color = "#00FF00"),
-    CategoryEntity(description = "Hogar", color = "#00FF00"),
-    CategoryEntity(description = "Entretenimiento", color = "#00FF00"),
-    CategoryEntity(description = "Educación", color = "#00FF00"),
-    CategoryEntity(description = "Salario", color = "#00FF00"),
-    CategoryEntity(description = "Inversión", color = "#00FF00"),
-    CategoryEntity(description = "Compras", color = "#00FF00"),
-    CategoryEntity(description = "Servicios", color = "#00FF00"),
-    CategoryEntity(description = "Ropa", color = "#00FF00"),
-    CategoryEntity(description = "Tecnología", color = "#00FF00"),
-
-    )
+    CategoryEntity(description = "Salud", icon = "Health"),
+    CategoryEntity(description = "Transporte", icon = "Transport"),
+    CategoryEntity(description = "Hogar", icon = "Home"),
+    CategoryEntity(description = "Entretenimiento", icon = "Entertainment"),
+    CategoryEntity(description = "Educación", icon = "Education"),
+    CategoryEntity(description = "Salario", icon = "Savings"),
+    CategoryEntity(description = "Inversión", icon = "Investments"),
+    CategoryEntity(description = "Compras", icon = "Shopping"),
+    CategoryEntity(description = "Servicios", icon = "Bills"),
+    CategoryEntity(description = "Ropa", icon = "Clothing"),
+    CategoryEntity(description = "Tecnología", icon = "Technology")
+)
 
 @Module
 @InstallIn(SingletonComponent::class)

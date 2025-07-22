@@ -2,6 +2,7 @@ package com.example.gestordegastos.presenter.home_screen
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.gestordegastos.domain.model.Category
 import com.example.gestordegastos.domain.model.Operation
 import com.example.gestordegastos.domain.usecase.DeleteOperationUseCase
 import com.example.gestordegastos.domain.usecase.GetCategoriaByIdUseCase
@@ -40,8 +41,8 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    suspend fun getCategoriaById(id: Int): String {
-        return getCategoryByIdUseCase(id)?.description ?: "Sin categoría"
+    suspend fun getCategoriaById(id: Int): Category? {
+        return getCategoryByIdUseCase(id)
     }
 
     fun deleteOperation(id: Int) {

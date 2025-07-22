@@ -1,4 +1,4 @@
-package com.example.gestordegastos.ui.theme
+package com.example.gestordegastos.presenter.ui.theme
 
 import android.app.Activity
 import android.os.Build
