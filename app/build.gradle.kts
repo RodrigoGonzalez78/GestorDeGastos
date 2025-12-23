@@ -53,7 +53,7 @@ dependencies {
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
-    implementation(libs.androidx.material3)
+    implementation("androidx.compose.material3:material3:1.3.1")
 
     implementation("androidx.navigation:navigation-compose:2.9.2")
     implementation("com.google.dagger:hilt-android:2.57")
@@ -66,7 +66,10 @@ dependencies {
 
     implementation("androidx.room:room-runtime:2.7.2")
     implementation("androidx.room:room-ktx:2.7.2")
+    implementation("androidx.room:room-paging:2.7.2")
     ksp("androidx.room:room-compiler:2.7.2")
+    
+    implementation("androidx.paging:paging-compose:3.3.0")
 
     implementation("androidx.compose.material:material-icons-extended:1.7.8")
 

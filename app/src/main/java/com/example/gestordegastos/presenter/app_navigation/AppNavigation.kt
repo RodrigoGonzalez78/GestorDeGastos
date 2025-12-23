@@ -27,7 +27,12 @@ fun AppNavigation() {
         startDestination = HomeRoute
     ) {
         composable<HomeRoute> {
-            HomeScreen(navController = navController)
+            HomeScreen(
+                navController = navController,
+                onNewOperation = {
+                    navController.navigate(NewOperationRoute)
+                }
+            )
         }
 
         composable<NewOperationRoute> {

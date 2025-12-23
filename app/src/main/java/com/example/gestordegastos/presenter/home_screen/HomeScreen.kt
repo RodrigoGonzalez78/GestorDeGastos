@@ -1,51 +1,21 @@
 package com.example.gestordegastos.presenter.home_screen
 
-
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Analytics
-import androidx.compose.material.icons.filled.ArrowDownward
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowUpward
-import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Checkroom
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.MedicalServices
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Movie
-import androidx.compose.material.icons.filled.PhoneAndroid
-import androidx.compose.material.icons.filled.Receipt
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.TrendingDown
-import androidx.compose.material.icons.filled.TrendingUp
-import androidx.compose.material.icons.filled.Work
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -53,21 +23,27 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.navigation.NavHostController
+import androidx.navigation.NavController
+import androidx.paging.LoadState
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.example.gestordegastos.domain.model.Category
 import com.example.gestordegastos.domain.model.Operation
-import com.example.gestordegastos.presenter.app_navigation.NewOperationRoute
-import com.example.gestordegastos.presenter.app_navigation.StatisticsRoute
 import com.example.gestordegastos.utils.getIconForName
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.*
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
-    navController: NavHostController,
+    onNewOperation: (Int) -> Unit,
+    navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val income = viewModel.income.collectAsLazyPagingItems()
+    val expenses = viewModel.bills.collectAsLazyPagingItems()
 
     Scaffold(
         topBar = {
@@ -90,7 +66,7 @@ fun HomeScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { navController.navigate(StatisticsRoute) },
+                        onClick = { /* TODO: Navigate to statistics */ },
                         modifier = Modifier
                             .size(44.dp)
                             .background(
@@ -114,7 +90,7 @@ fun HomeScreen(
         },
         floatingActionButton = {
             ExtendedFloatingActionButton(
-                onClick = { navController.navigate(NewOperationRoute) },
+                onClick = { onNewOperation(-1) },
                 containerColor = Color(0xFF0F172A),
                 contentColor = Color.White,
                 elevation = FloatingActionButtonDefaults.elevation(6.dp),
@@ -150,11 +126,19 @@ fun HomeScreen(
             }
 
             item {
+                DateRangeSelector(
+                    startDate = uiState.startDate,
+                    endDate = uiState.endDate,
+                    onDateSelected = { viewModel.onDatesChange(it.first, it.second) }
+                )
+            }
+
+            item {
                 TabbedOperations(
-                    income = uiState.income,
-                    expenses = uiState.bills,
-                    getCategoria = viewModel::getCategoriaById,
-                    onDelete = viewModel::deleteOperation
+                    income = income,
+                    expenses = expenses,
+                    getCategoria = { viewModel.getCategoriaById(it) },
+                    onDelete = { viewModel.deleteOperation(it) }
                 )
             }
         }
@@ -172,7 +156,6 @@ fun BalanceSection(total: Double, ingresos: Double, gastos: Double) {
         shape = RoundedCornerShape(20.dp)
     ) {
         Box {
-            // Gradient background effect
             Canvas(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -302,68 +285,134 @@ fun BalanceChip(
     }
 }
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun QuickActionCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    color: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+fun DateRangeSelector(
+    startDate: String,
+    endDate: String,
+    onDateSelected: (Pair<String, String>) -> Unit
 ) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    val dateRangePickerState = rememberDateRangePickerState()
+
     Card(
-        modifier = modifier
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showDatePicker = true },
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp),
         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Column(
-            modifier = Modifier.padding(20.dp),
-            horizontalAlignment = Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        color.copy(alpha = 0.1f),
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Icon(
-                    icon,
-                    contentDescription = null,
-                    tint = color,
-                    modifier = Modifier.size(20.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            Color(0xFFF1F5F9),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        Icons.Default.DateRange,
+                        contentDescription = "Seleccionar fecha",
+                        tint = Color(0xFF475569),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Column {
+                    Text(
+                        "Rango de fechas",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF64748B)
+                    )
+                    Text(
+                        "$startDate - $endDate",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color(0xFF0F172A)
+                    )
+                }
             }
-
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = Color(0xFF0F172A),
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF64748B)
+            Icon(
+                Icons.Default.Edit,
+                contentDescription = null,
+                tint = Color(0xFF94A3B8),
+                modifier = Modifier.size(20.dp)
             )
         }
     }
+
+    if (showDatePicker) {
+        AlertDialog(
+            onDismissRequest = { showDatePicker = false },
+            title = {
+                Text(
+                    "Selecciona un rango de fechas",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color(0xFF0F172A),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                DateRangePicker(state = dateRangePickerState)
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showDatePicker = false
+                        val start = dateRangePickerState.selectedStartDateMillis?.let { toDateString(it) }
+                        val end = dateRangePickerState.selectedEndDateMillis?.let { toDateString(it) }
+                        if (start != null && end != null) {
+                            onDateSelected(Pair(start, end))
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0F172A)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Aceptar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDatePicker = false },
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Cancelar", color = Color(0xFF64748B))
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 }
+
+fun toDateString(millis: Long): String {
+    val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    val date = Date(millis)
+    return sdf.format(date)
+}
+
+
 
 @Composable
 fun TabbedOperations(
-    income: List<Operation>,
-    expenses: List<Operation>,
+    income: LazyPagingItems<Operation>,
+    expenses: LazyPagingItems<Operation>,
     getCategoria: suspend (Int) -> Category?,
     onDelete: (Int) -> Unit
 ) {
@@ -388,7 +437,6 @@ fun TabbedOperations(
             shape = RoundedCornerShape(16.dp)
         ) {
             Column {
-                // Custom Tab Row with better UX
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -420,9 +468,9 @@ fun TabbedOperations(
                     }
                 }
 
-                val list = if (selectedTab == 0) expenses.take(5) else income.take(5)
+                val list = if (selectedTab == 0) expenses else income
 
-                if (list.isEmpty()) {
+                if (list.loadState.refresh is LoadState.NotLoading && list.itemCount == 0) {
                     EmptyStateMessage(
                         message = if (selectedTab == 0) "No hay gastos registrados" else "No hay ingresos registrados",
                         icon = if (selectedTab == 0) Icons.Default.ShoppingCart else Icons.Default.AccountBalance
@@ -431,36 +479,48 @@ fun TabbedOperations(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 300.dp),
+                            .heightIn(max = 400.dp),
                         contentPadding = PaddingValues(16.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(list) { operation ->
-                            OperationCard(
-                                operation = operation,
-                                getCategory = getCategoria,
-                                onDelete = onDelete
-                            )
+                        items(list.itemCount) { index ->
+                            val operation = list[index]
+                            if (operation != null) {
+                                OperationCard(
+                                    operation = operation,
+                                    getCategory = getCategoria,
+                                    onDelete = onDelete
+                                )
+                            }
                         }
 
-                        if (list.size >= 5) {
-                            item {
-                                TextButton(
-                                    onClick = { /* Navigate to full list */ },
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Text(
-                                        "Ver todas las transacciones",
-                                        color = Color(0xFF0F172A),
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(Modifier.width(4.dp))
-                                    Icon(
-                                        Icons.AutoMirrored.Filled.ArrowForward,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = Color(0xFF0F172A)
-                                    )
+                        list.apply {
+                            when {
+                                loadState.refresh is LoadState.Loading -> {
+                                    item {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.padding(16.dp),
+                                                color = Color(0xFF0F172A)
+                                            )
+                                        }
+                                    }
+                                }
+                                loadState.append is LoadState.Loading -> {
+                                    item {
+                                        Box(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.padding(16.dp),
+                                                color = Color(0xFF0F172A)
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -513,14 +573,11 @@ fun OperationCard(
     getCategory: suspend (Int) -> Category?,
     onDelete: (Int) -> Unit
 ) {
-    val categoria by produceState<Category?>(
-        initialValue = null
-    ) {
+    val categoria by produceState<Category?>(initialValue = null) {
         value = getCategory(operation.categoryId)
     }
 
-    val categoryIcon= getIconForName(categoria?.icon ?:"")
-
+    val categoryIcon = getIconForName(categoria?.icon ?: "")
     var showDeleteDialog by remember { mutableStateOf(false) }
 
     Card(
@@ -650,7 +707,6 @@ fun OperationCard(
         )
     }
 }
-
 
 fun formatCurrency(amount: Double): String {
     return NumberFormat.getCurrencyInstance(Locale("es", "AR")).format(amount)
