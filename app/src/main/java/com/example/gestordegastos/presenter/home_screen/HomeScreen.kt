@@ -292,24 +292,29 @@ fun DateRangeSelector(
     endDate: String,
     onDateSelected: (Pair<String, String>) -> Unit
 ) {
-    var showDatePicker by remember { mutableStateOf(false) }
-    val dateRangePickerState = rememberDateRangePickerState()
+    var showStartDatePicker by remember { mutableStateOf(false) }
+    var showEndDatePicker by remember { mutableStateOf(false) }
+    var currentStartDate by remember { mutableStateOf(startDate) }
+    var currentEndDate by remember { mutableStateOf(endDate) }
+
+    // Actualizar las fechas cuando cambien desde el ViewModel
+    LaunchedEffect(startDate, endDate) {
+        currentStartDate = startDate
+        currentEndDate = endDate
+    }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { showDatePicker = true },
+        modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(2.dp),
         border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -326,56 +331,126 @@ fun DateRangeSelector(
                 ) {
                     Icon(
                         Icons.Default.DateRange,
-                        contentDescription = "Seleccionar fecha",
+                        contentDescription = "Rango de fechas",
                         tint = Color(0xFF475569),
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                Column {
-                    Text(
-                        "Rango de fechas",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Color(0xFF64748B)
-                    )
-                    Text(
-                        "$startDate - $endDate",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = Color(0xFF0F172A)
-                    )
+                Text(
+                    "Rango de fechas",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF0F172A)
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Selector de fecha de inicio
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showStartDatePicker = true },
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            "Desde",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF64748B)
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarToday,
+                                contentDescription = null,
+                                tint = Color(0xFF10B981),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                formatDisplayDate(currentStartDate),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0F172A)
+                            )
+                        }
+                    }
+                }
+
+                // Selector de fecha de fin
+                Card(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clickable { showEndDatePicker = true },
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                    elevation = CardDefaults.cardElevation(0.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(
+                            "Hasta",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color(0xFF64748B)
+                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Event,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Text(
+                                formatDisplayDate(currentEndDate),
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(0xFF0F172A)
+                            )
+                        }
+                    }
                 }
             }
-            Icon(
-                Icons.Default.Edit,
-                contentDescription = null,
-                tint = Color(0xFF94A3B8),
-                modifier = Modifier.size(20.dp)
-            )
         }
     }
 
-    if (showDatePicker) {
-        AlertDialog(
-            onDismissRequest = { showDatePicker = false },
-            title = {
-                Text(
-                    "Selecciona un rango de fechas",
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = Color(0xFF0F172A),
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                DateRangePicker(state = dateRangePickerState)
-            },
+    // DatePicker para fecha de inicio
+    if (showStartDatePicker) {
+        val endDateMillis = parseDateToMillis(currentEndDate)
+        val startDatePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = parseDateToMillis(currentStartDate),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    return utcTimeMillis <= endDateMillis
+                }
+            }
+        )
+        
+        DatePickerDialog(
+            onDismissRequest = { showStartDatePicker = false },
             confirmButton = {
                 Button(
                     onClick = {
-                        showDatePicker = false
-                        val start = dateRangePickerState.selectedStartDateMillis?.let { toDateString(it) }
-                        val end = dateRangePickerState.selectedEndDateMillis?.let { toDateString(it) }
-                        if (start != null && end != null) {
-                            onDateSelected(Pair(start, end))
+                        showStartDatePicker = false
+                        startDatePickerState.selectedDateMillis?.let { millis ->
+                            val newStartDate = toDateString(millis)
+                            currentStartDate = newStartDate
+                            onDateSelected(Pair(newStartDate, currentEndDate))
                         }
                     },
                     colors = ButtonDefaults.buttonColors(
@@ -388,16 +463,106 @@ fun DateRangeSelector(
             },
             dismissButton = {
                 OutlinedButton(
-                    onClick = { showDatePicker = false },
+                    onClick = { showStartDatePicker = false },
                     border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
                     shape = RoundedCornerShape(8.dp)
                 ) {
                     Text("Cancelar", color = Color(0xFF64748B))
                 }
             },
-            containerColor = Color.White,
+            colors = DatePickerDefaults.colors(containerColor = Color.White),
             shape = RoundedCornerShape(16.dp)
+        ) {
+            DatePicker(
+                state = startDatePickerState,
+                title = {
+                    Text(
+                        "Seleccionar fecha de inicio",
+                        modifier = Modifier.padding(start = 24.dp, top = 16.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            )
+        }
+    }
+
+    // DatePicker para fecha de fin
+    if (showEndDatePicker) {
+        val startDateMillis = parseDateToMillis(currentStartDate)
+        val endDatePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = parseDateToMillis(currentEndDate),
+            selectableDates = object : SelectableDates {
+                override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                    return utcTimeMillis >= startDateMillis
+                }
+            }
         )
+        
+        DatePickerDialog(
+            onDismissRequest = { showEndDatePicker = false },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showEndDatePicker = false
+                        endDatePickerState.selectedDateMillis?.let { millis ->
+                            val newEndDate = toDateString(millis)
+                            currentEndDate = newEndDate
+                            onDateSelected(Pair(currentStartDate, newEndDate))
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF0F172A)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Aceptar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showEndDatePicker = false },
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Cancelar", color = Color(0xFF64748B))
+                }
+            },
+            colors = DatePickerDefaults.colors(containerColor = Color.White),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            DatePicker(
+                state = endDatePickerState,
+                title = {
+                    Text(
+                        "Seleccionar fecha de fin",
+                        modifier = Modifier.padding(start = 24.dp, top = 16.dp),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            )
+        }
+    }
+}
+
+fun formatDisplayDate(dateString: String): String {
+    return try {
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        val outputFormat = SimpleDateFormat("dd MMM yyyy", Locale("es", "AR"))
+        val date = inputFormat.parse(dateString)
+        date?.let { outputFormat.format(it) } ?: dateString
+    } catch (e: Exception) {
+        dateString
+    }
+}
+
+fun parseDateToMillis(dateString: String): Long {
+    return try {
+        val format = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        format.parse(dateString)?.time ?: System.currentTimeMillis()
+    } catch (e: Exception) {
+        System.currentTimeMillis()
     }
 }
 
