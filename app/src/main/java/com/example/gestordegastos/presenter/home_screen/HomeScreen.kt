@@ -39,11 +39,13 @@ import java.util.*
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onNewOperation: (Int) -> Unit,
+    onStatistics: () -> Unit,
+    onExport: () -> Unit,
     navController: NavController
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val income = viewModel.income.collectAsLazyPagingItems()
-    val expenses = viewModel.bills.collectAsLazyPagingItems()
+    val income by viewModel.income.collectAsState()
+    val expenses by viewModel.expenses.collectAsState()
 
     Scaffold(
         topBar = {
@@ -66,7 +68,24 @@ fun HomeScreen(
                 },
                 actions = {
                     IconButton(
-                        onClick = { /* TODO: Navigate to statistics */ },
+                        onClick = onExport,
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(
+                                Color(0xFFF1F5F9),
+                                CircleShape
+                            )
+                    ) {
+                        Icon(
+                            Icons.Default.FileDownload,
+                            contentDescription = "Exportar datos",
+                            tint = Color(0xFF475569),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    IconButton(
+                        onClick = onStatistics,
                         modifier = Modifier
                             .size(44.dp)
                             .background(
@@ -88,6 +107,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
         },
+
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { onNewOperation(-1) },
@@ -134,16 +154,18 @@ fun HomeScreen(
             }
 
             item {
-                TabbedOperations(
+                TabbedOperationsNew(
                     income = income,
                     expenses = expenses,
                     getCategoria = { viewModel.getCategoriaById(it) },
-                    onDelete = { viewModel.deleteOperation(it) }
+                    onDelete = { viewModel.deleteOperation(it) },
+                    onEdit = { onNewOperation(it) }
                 )
             }
         }
     }
 }
+
 
 @Composable
 fun BalanceSection(total: Double, ingresos: Double, gastos: Double) {
@@ -579,7 +601,8 @@ fun TabbedOperations(
     income: LazyPagingItems<Operation>,
     expenses: LazyPagingItems<Operation>,
     getCategoria: suspend (Int) -> Category?,
-    onDelete: (Int) -> Unit
+    onDelete: (Int) -> Unit,
+    onEdit: (Int) -> Unit
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Gastos Recientes", "Ingresos Recientes")
@@ -654,7 +677,8 @@ fun TabbedOperations(
                                 OperationCard(
                                     operation = operation,
                                     getCategory = getCategoria,
-                                    onDelete = onDelete
+                                    onDelete = onDelete,
+                                    onEdit = onEdit
                                 )
                             }
                         }
@@ -736,7 +760,8 @@ fun EmptyStateMessage(message: String, icon: ImageVector) {
 fun OperationCard(
     operation: Operation,
     getCategory: suspend (Int) -> Category?,
-    onDelete: (Int) -> Unit
+    onDelete: (Int) -> Unit,
+    onEdit: (Int) -> Unit
 ) {
     val categoria by produceState<Category?>(initialValue = null) {
         value = getCategory(operation.categoryId)
@@ -744,6 +769,7 @@ fun OperationCard(
 
     val categoryIcon = getIconForName(categoria?.icon ?: "")
     var showDeleteDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
 
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -812,7 +838,7 @@ fun OperationCard(
                 )
 
                 IconButton(
-                    onClick = { showDeleteDialog = true },
+                    onClick = { showMenu = true },
                     modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
@@ -821,6 +847,60 @@ fun OperationCard(
                         tint = Color(0xFF94A3B8),
                         modifier = Modifier.size(16.dp)
                     )
+                    
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Edit,
+                                        contentDescription = null,
+                                        tint = Color(0xFF475569),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        "Editar",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFF0F172A)
+                                    )
+                                }
+                            },
+                            onClick = {
+                                showMenu = false
+                                onEdit(operation.id)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = Color(0xFFEF4444),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Text(
+                                        "Eliminar",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color(0xFFEF4444)
+                                    )
+                                }
+                            },
+                            onClick = {
+                                showMenu = false
+                                showDeleteDialog = true
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -875,4 +955,319 @@ fun OperationCard(
 
 fun formatCurrency(amount: Double): String {
     return NumberFormat.getCurrencyInstance(Locale("es", "AR")).format(amount)
+}
+
+@Composable
+fun TabbedOperationsNew(
+    income: List<com.example.gestordegastos.domain.model.OperationDisplayItem>,
+    expenses: List<com.example.gestordegastos.domain.model.OperationDisplayItem>,
+    getCategoria: suspend (Int) -> Category?,
+    onDelete: (Int) -> Unit,
+    onEdit: (Int) -> Unit
+) {
+    var selectedTab by remember { mutableIntStateOf(0) }
+    val tabs = listOf("Gastos Recientes", "Ingresos Recientes")
+
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Text(
+            "Transacciones Recientes",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF0F172A)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(2.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+            shape = RoundedCornerShape(16.dp)
+        ) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                        .background(
+                            Color(0xFFF1F5F9),
+                            RoundedCornerShape(12.dp)
+                        )
+                ) {
+                    tabs.forEachIndexed { index, title ->
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { selectedTab = index }
+                                .background(
+                                    if (selectedTab == index) Color.White else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(vertical = 12.dp, horizontal = 16.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                title,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = if (selectedTab == index) Color(0xFF0F172A) else Color(0xFF64748B),
+                                fontWeight = if (selectedTab == index) FontWeight.SemiBold else FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
+                val list = if (selectedTab == 0) expenses else income
+
+                if (list.isEmpty()) {
+                    EmptyStateMessage(
+                        message = if (selectedTab == 0) "No hay gastos registrados" else "No hay ingresos registrados",
+                        icon = if (selectedTab == 0) Icons.Default.ShoppingCart else Icons.Default.AccountBalance
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(list.size) { index ->
+                            val item = list[index]
+                            OperationDisplayCard(
+                                item = item,
+                                getCategory = getCategoria,
+                                onDelete = onDelete,
+                                onEdit = onEdit
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OperationDisplayCard(
+    item: com.example.gestordegastos.domain.model.OperationDisplayItem,
+    getCategory: suspend (Int) -> Category?,
+    onDelete: (Int) -> Unit,
+    onEdit: (Int) -> Unit
+) {
+    val categoria by produceState<Category?>(initialValue = null) {
+        value = getCategory(item.categoryId)
+    }
+
+    val categoryIcon = getIconForName(categoria?.icon ?: "")
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFAFAFA)),
+        elevation = CardDefaults.cardElevation(0.dp),
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            if (item.typeOperationId == 1)
+                                Color(0xFFEF4444).copy(alpha = 0.1f)
+                            else
+                                Color(0xFF10B981).copy(alpha = 0.1f),
+                            CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        categoryIcon,
+                        contentDescription = null,
+                        tint = if (item.typeOperationId == 1) Color(0xFFEF4444) else Color(0xFF10B981),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            categoria?.description ?: "Sin categoría",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color(0xFF0F172A),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        // Badge for installment
+                        if (item.isInstallment && item.installmentNumber != null) {
+                            Surface(
+                                color = Color(0xFF6366F1).copy(alpha = 0.15f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "Cuota ${item.installmentNumber}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color(0xFF6366F1),
+                                    fontWeight = FontWeight.SemiBold,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        text = formatDisplayDate(item.date),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF94A3B8)
+                    )
+                }
+            }
+
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = formatCurrency(item.amount),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = if (item.typeOperationId == 1) Color(0xFFEF4444) else Color(0xFF10B981)
+                )
+
+                // Only show menu for non-installment items (can't edit individual installments)
+                if (!item.isInstallment) {
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = !showMenu },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.MoreVert,
+                                contentDescription = "Más opciones",
+                                tint = Color(0xFF94A3B8),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false },
+                            containerColor = Color.White,
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Edit,
+                                            contentDescription = null,
+                                            tint = Color(0xFF0F172A),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            "Editar",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color(0xFF0F172A)
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onEdit(item.id)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Delete,
+                                            contentDescription = null,
+                                            tint = Color(0xFFEF4444),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Text(
+                                            "Eliminar",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color(0xFFEF4444)
+                                        )
+                                    }
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    showDeleteDialog = true
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    "Eliminar transacción",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = Color(0xFF0F172A),
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    "¿Estás seguro de que quieres eliminar esta transacción? Esta acción no se puede deshacer.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = Color(0xFF64748B)
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDelete(item.id)
+                        showDeleteDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFEF4444)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Eliminar", color = Color.White, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = { showDeleteDialog = false },
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Cancelar", color = Color(0xFF64748B))
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
 }

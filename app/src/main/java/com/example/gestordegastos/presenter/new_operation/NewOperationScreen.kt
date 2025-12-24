@@ -120,14 +120,22 @@ import java.util.Date
 fun NewOperationScreen(
     viewModel: NewOperationViewModel = hiltViewModel(),
     navController: NavHostController,
+    operationId: Int = -1
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 
+    // Load operation for editing if operationId is provided
+    LaunchedEffect(operationId) {
+        if (operationId > 0) {
+            viewModel.loadOperation(operationId)
+        }
+    }
+
     LaunchedEffect(uiState.success) {
         if (uiState.success) {
             snackbarHostState.showSnackbar(
-                message = "Operación guardada exitosamente",
+                message = if (uiState.isEditMode) "Operación actualizada exitosamente" else "Operación guardada exitosamente",
                 actionLabel = "OK"
             )
             navController.popBackStack()
@@ -149,7 +157,7 @@ fun NewOperationScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Nueva Operación",
+                        if (uiState.isEditMode) "Editar Operación" else "Nueva Operación",
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = Color(0xFF0F172A)
@@ -251,7 +259,23 @@ fun NewOperationScreen(
                 }
 
                 item {
+                    InstallmentSection(
+                        isInstallment = uiState.isInstallment,
+                        numberOfInstallments = uiState.numberOfInstallments,
+                        generatedInstallments = uiState.generatedInstallments,
+                        onToggleInstallment = viewModel::toggleInstallment,
+                        onNumberOfInstallmentsChange = viewModel::updateNumberOfInstallments,
+                        onInstallmentDateClick = viewModel::showInstallmentDatePicker
+                    )
+                }
+
+                item {
                     Spacer(modifier = Modifier.height(16.dp))
+
+                    val isFormValid = uiState.selectedOperationTypeId != null &&
+                            uiState.amount.isNotBlank() &&
+                            uiState.selectedCategoryId != null &&
+                            (!uiState.isInstallment || uiState.numberOfInstallments.toIntOrNull()?.let { it > 0 } == true)
 
                     Button(
                         onClick = viewModel::saveOperation,
@@ -263,19 +287,13 @@ fun NewOperationScreen(
                             disabledContainerColor = Color(0xFFE2E8F0)
                         ),
                         shape = RoundedCornerShape(8.dp),
-                        enabled = uiState.selectedOperationTypeId != null &&
-                                uiState.amount.isNotBlank() &&
-                                uiState.selectedCategoryId != null
+                        enabled = isFormValid
                     ) {
                         Text(
-                            text = "Guardar Operación",
+                            text = if (uiState.isEditMode) "Actualizar Operación" else "Guardar Operación",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = if (uiState.selectedOperationTypeId != null &&
-                                uiState.amount.isNotBlank() &&
-                                uiState.selectedCategoryId != null
-                            )
-                                Color.White else Color(0xFF94A3B8)
+                            color = if (isFormValid) Color.White else Color(0xFF94A3B8)
                         )
                     }
                 }
@@ -291,6 +309,18 @@ fun NewOperationScreen(
                 viewModel.hideDatePicker()
             },
             onDismiss = viewModel::hideDatePicker
+        )
+    }
+
+    // DatePicker for installment dates
+    if (uiState.showInstallmentDatePicker && uiState.editingInstallmentIndex >= 0) {
+        val currentInstallmentDate = uiState.generatedInstallments.getOrNull(uiState.editingInstallmentIndex)?.dueDate ?: uiState.date
+        DatePickerDialog(
+            currentDate = currentInstallmentDate,
+            onDateSelected = { selectedDate ->
+                viewModel.updateInstallmentDate(selectedDate)
+            },
+            onDismiss = viewModel::hideInstallmentDatePicker
         )
     }
 
@@ -812,3 +842,161 @@ fun NewCategoryDialog(
     )
 }
 
+
+@Composable
+fun InstallmentSection(
+    isInstallment: Boolean,
+    numberOfInstallments: String,
+    generatedInstallments: List<com.example.gestordegastos.domain.model.Installment>,
+    onToggleInstallment: (Boolean) -> Unit,
+    onNumberOfInstallmentsChange: (String) -> Unit,
+    onInstallmentDateClick: (Int) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "¿Es en cuotas?",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF0F172A)
+            )
+
+            androidx.compose.material3.Switch(
+                checked = isInstallment,
+                onCheckedChange = onToggleInstallment,
+                colors = androidx.compose.material3.SwitchDefaults.colors(
+                    checkedThumbColor = Color.White,
+                    checkedTrackColor = Color(0xFF0F172A),
+                    uncheckedThumbColor = Color.White,
+                    uncheckedTrackColor = Color(0xFFE2E8F0)
+                )
+            )
+        }
+
+        if (isInstallment) {
+            OutlinedTextField(
+                value = numberOfInstallments,
+                onValueChange = onNumberOfInstallmentsChange,
+                label = { Text("Número de cuotas", color = Color(0xFF64748B)) },
+                placeholder = { Text("Ej: 3", color = Color(0xFF94A3B8)) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Receipt,
+                        contentDescription = null,
+                        tint = Color(0xFF64748B),
+                        modifier = Modifier.size(18.dp)
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFF0F172A),
+                    unfocusedBorderColor = Color(0xFFE2E8F0),
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                ),
+                shape = RoundedCornerShape(8.dp),
+                singleLine = true
+            )
+
+            if (generatedInstallments.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Vista previa de cuotas (toca la fecha para cambiarla):",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    color = Color(0xFF64748B)
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFF8FAFC)
+                    ),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        generatedInstallments.forEachIndexed { index, installment ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(24.dp)
+                                            .background(
+                                                Color(0xFF0F172A),
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = installment.installmentNumber.toString(),
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                    
+                                    // Clickable date with calendar icon
+                                    Row(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .clickable { onInstallmentDateClick(index) }
+                                            .background(Color(0xFFE2E8F0).copy(alpha = 0.5f))
+                                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            Icons.Default.CalendarToday,
+                                            contentDescription = "Cambiar fecha",
+                                            tint = Color(0xFF0F172A),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Text(
+                                            text = installment.dueDate,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color(0xFF0F172A),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+                                }
+
+                                Text(
+                                    text = "$${String.format("%.2f", installment.amount)}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = Color(0xFF0F172A)
+                                )
+                            }
+
+                            if (installment != generatedInstallments.last()) {
+                                Divider(
+                                    color = Color(0xFFE2E8F0),
+                                    thickness = 1.dp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

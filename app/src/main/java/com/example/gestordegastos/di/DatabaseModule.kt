@@ -6,6 +6,7 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.gestordegastos.data.local.AppDatabase
 import com.example.gestordegastos.data.local.dao.CategoryDao
+import com.example.gestordegastos.data.local.dao.InstallmentDao
 import com.example.gestordegastos.data.local.dao.OperationDao
 import com.example.gestordegastos.data.local.dao.TypeOperationDao
 import com.example.gestordegastos.data.local.entity.CategoryEntity
@@ -53,21 +54,28 @@ object DatabaseModule {
         var dbInstance: AppDatabase? = null
 
         val callback = object : RoomDatabase.Callback() {
-            override fun onCreate(db: SupportSQLiteDatabase) {
-                super.onCreate(db)
+            override fun onOpen(db: SupportSQLiteDatabase) {
+                super.onOpen(db)
 
                 scope.launch {
-
-                    val db = dbInstance
+                    val database = dbInstance
                         ?: throw IllegalStateException("DB no inicializada en callback")
-                    val typeOperationDao = db.typeOperationDao()
-                    val categoryDao = db.categoryDao()
+                    val typeOperationDao = database.typeOperationDao()
+                    val categoryDao = database.categoryDao()
 
-                    typeOperationDao.insert(TypeOperationEntity(description = "Gasto"))
-                    typeOperationDao.insert(TypeOperationEntity(description = "Ingreso"))
+                    // Insert TypeOperations if they don't exist
+                    val existingTypes = typeOperationDao.getAllOneShot()
+                    if (existingTypes.isEmpty()) {
+                        typeOperationDao.insert(TypeOperationEntity(description = "Gasto"))
+                        typeOperationDao.insert(TypeOperationEntity(description = "Ingreso"))
+                    }
 
-                    categories.forEach {
-                        categoryDao.insert(it)
+                    // Insert categories if they don't exist
+                    val existingCategories = categoryDao.getAllOneShot()
+                    if (existingCategories.isEmpty()) {
+                        categories.forEach {
+                            categoryDao.insert(it)
+                        }
                     }
                 }
             }
@@ -79,7 +87,7 @@ object DatabaseModule {
             "app_database"
         )
             .addCallback(callback)
-            .fallbackToDestructiveMigration(false)
+            .fallbackToDestructiveMigration(true)
             .build()
 
         dbInstance = instance
@@ -103,6 +111,12 @@ object DatabaseModule {
     @Singleton
     fun provideTypeOperationDao(appDatabase: AppDatabase): TypeOperationDao {
         return appDatabase.typeOperationDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideInstallmentDao(appDatabase: AppDatabase): InstallmentDao {
+        return appDatabase.installmentDao()
     }
 
 }

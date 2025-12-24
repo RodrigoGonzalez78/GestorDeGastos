@@ -17,6 +17,9 @@ interface TypeOperationDao {
     @Query("SELECT * FROM TypeOperation")
     fun getAll(): Flow<List<TypeOperationEntity>>
 
+    @Query("SELECT * FROM TypeOperation")
+    suspend fun getAllOneShot(): List<TypeOperationEntity>
+
     @Update
     suspend fun update(type: TypeOperationEntity): Int
 

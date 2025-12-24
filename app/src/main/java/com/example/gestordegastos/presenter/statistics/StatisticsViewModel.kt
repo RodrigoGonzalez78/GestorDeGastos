@@ -4,12 +4,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.gestordegastos.domain.model.CategoryExpense
 import com.example.gestordegastos.domain.model.CategoryIncome
-import com.example.gestordegastos.domain.model.MonthlyTotal
+import com.example.gestordegastos.domain.model.DailyTotal
 import com.example.gestordegastos.domain.model.YearlyComparison
-import com.example.gestordegastos.domain.usecase.GetMonthlyExpensesByCategoryUseCase
-import com.example.gestordegastos.domain.usecase.GetMonthlyIncomesByCategoryUseCase
-import com.example.gestordegastos.domain.usecase.GetMonthlyTotalsUseCase
-import com.example.gestordegastos.domain.usecase.GetYearlyComparisonUseCase
+import com.example.gestordegastos.domain.repository.StatisticsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,60 +14,83 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
 class StatisticsViewModel @Inject constructor(
-    private val getMonthlyExpensesByCategoryUseCase: GetMonthlyExpensesByCategoryUseCase,
-    private val getMonthlyIncomesByCategoryUseCase: GetMonthlyIncomesByCategoryUseCase,
-    private val getMonthlyTotalsUseCase: GetMonthlyTotalsUseCase,
-    private val getYearlyComparisonUseCase: GetYearlyComparisonUseCase
+    private val statisticsRepository: StatisticsRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(StatisticsUiState())
+    private val _uiState = MutableStateFlow(
+        StatisticsUiState(
+            startDate = getCurrentMonthDateRange().first,
+            endDate = getCurrentMonthDateRange().second
+        )
+    )
     val uiState: StateFlow<StatisticsUiState> = _uiState.asStateFlow()
-
-    private val currentDate = Calendar.getInstance()
 
     init {
         loadStatistics()
     }
 
-    private fun loadStatistics() {
-        val currentYear = currentDate.get(Calendar.YEAR)
-        val currentMonth = currentDate.get(Calendar.MONTH) + 1
+    private fun getCurrentMonthDateRange(): Pair<String, String> {
+        val calendar = Calendar.getInstance()
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
 
+        calendar.set(Calendar.DAY_OF_MONTH, 1)
+        val startDate = dateFormat.format(calendar.time)
+
+        calendar.set(Calendar.DAY_OF_MONTH, calendar.getActualMaximum(Calendar.DAY_OF_MONTH))
+        val endDate = dateFormat.format(calendar.time)
+
+        return Pair(startDate, endDate)
+    }
+
+    private fun loadStatistics() {
+        val dateRange = getCurrentMonthDateRange()
+        loadStatisticsForDateRange(dateRange.first, dateRange.second)
+    }
+
+    private fun loadStatisticsForDateRange(startDate: String, endDate: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
 
             try {
                 val expensesDeferred = async {
-                    getMonthlyExpensesByCategoryUseCase(currentYear, currentMonth).first()
+                    statisticsRepository.getExpensesByCategoryInRange(startDate, endDate).first()
                 }
                 val incomesDeferred = async {
-                    getMonthlyIncomesByCategoryUseCase(currentYear, currentMonth).first()
+                    statisticsRepository.getIncomesByCategoryInRange(startDate, endDate).first()
                 }
-                val monthlyTotalsDeferred = async {
-                    getMonthlyTotalsUseCase(currentYear).first()
+                val dailyTotalsDeferred = async {
+                    statisticsRepository.getDailyTotalsInRange(startDate, endDate).first()
+                }
+                val totalsDeferred = async {
+                    statisticsRepository.getTotalsInRange(startDate, endDate).first()
                 }
                 val yearlyComparisonDeferred = async {
-                    getYearlyComparisonUseCase().first()
+                    statisticsRepository.getYearlyComparison().first()
                 }
 
                 val expenses = expensesDeferred.await()
                 val incomes = incomesDeferred.await()
-                val monthlyTotals = monthlyTotalsDeferred.await()
+                val dailyTotals = dailyTotalsDeferred.await()
+                val totals = totalsDeferred.await()
                 val yearlyComparison = yearlyComparisonDeferred.await()
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    monthlyExpenses = expenses,
-                    monthlyIncomes = incomes,
-                    monthlyTotals = monthlyTotals,
+                    expensesByCategory = expenses,
+                    incomesByCategory = incomes,
+                    dailyTotals = dailyTotals,
+                    totalIncome = totals.first,
+                    totalExpenses = totals.second,
                     yearlyComparison = yearlyComparison,
-                    selectedYear = currentYear,
-                    selectedMonth = currentMonth
+                    startDate = startDate,
+                    endDate = endDate
                 )
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
@@ -81,34 +101,9 @@ class StatisticsViewModel @Inject constructor(
         }
     }
 
-    fun selectMonth(month: Int) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(selectedMonth = month)
-
-            val expenses = getMonthlyExpensesByCategoryUseCase(_uiState.value.selectedYear, month).first()
-            val incomes = getMonthlyIncomesByCategoryUseCase(_uiState.value.selectedYear, month).first()
-
-            _uiState.value = _uiState.value.copy(
-                monthlyExpenses = expenses,
-                monthlyIncomes = incomes
-            )
-        }
-    }
-
-    fun selectYear(year: Int) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(selectedYear = year)
-
-            val monthlyTotals = getMonthlyTotalsUseCase(year).first()
-            val expenses = getMonthlyExpensesByCategoryUseCase(year, _uiState.value.selectedMonth).first()
-            val incomes = getMonthlyIncomesByCategoryUseCase(year, _uiState.value.selectedMonth).first()
-
-            _uiState.value = _uiState.value.copy(
-                monthlyTotals = monthlyTotals,
-                monthlyExpenses = expenses,
-                monthlyIncomes = incomes
-            )
-        }
+    fun onDatesChange(startDate: String, endDate: String) {
+        _uiState.value = _uiState.value.copy(startDate = startDate, endDate = endDate)
+        loadStatisticsForDateRange(startDate, endDate)
     }
 
     fun clearError() {
@@ -118,11 +113,13 @@ class StatisticsViewModel @Inject constructor(
 
 data class StatisticsUiState(
     val isLoading: Boolean = false,
-    val monthlyExpenses: List<CategoryExpense> = emptyList(),
-    val monthlyIncomes: List<CategoryIncome> = emptyList(),
-    val monthlyTotals: List<MonthlyTotal> = emptyList(),
+    val expensesByCategory: List<CategoryExpense> = emptyList(),
+    val incomesByCategory: List<CategoryIncome> = emptyList(),
+    val dailyTotals: List<DailyTotal> = emptyList(),
+    val totalIncome: Double = 0.0,
+    val totalExpenses: Double = 0.0,
     val yearlyComparison: List<YearlyComparison> = emptyList(),
-    val selectedYear: Int = Calendar.getInstance().get(Calendar.YEAR),
-    val selectedMonth: Int = Calendar.getInstance().get(Calendar.MONTH) + 1,
+    val startDate: String = "",
+    val endDate: String = "",
     val error: String? = null
 )

@@ -1,9 +1,11 @@
 package com.example.gestordegastos.data.mappers
 
 import com.example.gestordegastos.data.local.entity.CategoryEntity
+import com.example.gestordegastos.data.local.entity.InstallmentEntity
 import com.example.gestordegastos.data.local.entity.OperationEntity
 import com.example.gestordegastos.data.local.entity.TypeOperationEntity
 import com.example.gestordegastos.domain.model.Category
+import com.example.gestordegastos.domain.model.Installment
 import com.example.gestordegastos.domain.model.Operation
 import com.example.gestordegastos.domain.model.TypeOperation
 
@@ -14,6 +16,7 @@ fun OperationEntity.toOperation(): Operation {
         date = this.date,
         categoryId = this.category,
         typeOperationId = this.typeOperation,
+        isInstallment = this.isInstallment
     )
 }
 
@@ -24,6 +27,7 @@ fun Operation.toOperationEntity(): OperationEntity {
         date = this.date,
         category = this.categoryId,
         typeOperation = this.typeOperationId,
+        isInstallment = this.isInstallment
     )
 }
 
@@ -55,5 +59,27 @@ fun TypeOperation.toTypeOperationEntity(): TypeOperationEntity {
         id = this.id,
         description = this.description,
 
+    )
+}
+
+fun InstallmentEntity.toInstallment(): Installment {
+    return Installment(
+        id = this.id,
+        operationId = this.operationId,
+        amount = this.amount,
+        dueDate = this.dueDate,
+        isPaid = this.isPaid,
+        installmentNumber = this.installmentNumber
+    )
+}
+
+fun Installment.toInstallmentEntity(): InstallmentEntity {
+    return InstallmentEntity(
+        id = this.id,
+        operationId = this.operationId,
+        amount = this.amount,
+        dueDate = this.dueDate,
+        isPaid = this.isPaid,
+        installmentNumber = this.installmentNumber
     )
 }

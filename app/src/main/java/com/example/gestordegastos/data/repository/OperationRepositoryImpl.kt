@@ -42,4 +42,12 @@ class OperationRepositoryImpl @Inject constructor(
     override suspend fun insertOperation(operation: Operation): Long {
         return operationDao.insert(operation.toOperationEntity())
     }
+
+    override suspend fun getById(id: Int): Operation? {
+        return operationDao.getById(id)?.toOperation()
+    }
+
+    override suspend fun updateOperation(operation: Operation) {
+        operationDao.update(operation.toOperationEntity())
+    }
 }

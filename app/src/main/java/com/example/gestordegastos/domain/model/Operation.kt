@@ -5,5 +5,6 @@ data class Operation(
     val amount: Double,
     val date: String,
     val categoryId: Int,
-    val typeOperationId: Int
+    val typeOperationId: Int,
+    val isInstallment: Boolean = false
 )

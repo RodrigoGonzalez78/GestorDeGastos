@@ -9,4 +9,6 @@ interface OperationRepository {
     fun getOperations(typeId: Int, startDate: String, endDate: String): Flow<PagingData<Operation>>
     suspend fun delete(id: Int)
     suspend fun insertOperation(operation: Operation): Long
+    suspend fun getById(id: Int): Operation?
+    suspend fun updateOperation(operation: Operation)
 }

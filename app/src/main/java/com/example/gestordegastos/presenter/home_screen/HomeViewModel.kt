@@ -6,8 +6,10 @@ import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.example.gestordegastos.domain.model.Category
 import com.example.gestordegastos.domain.model.Operation
+import com.example.gestordegastos.domain.model.OperationDisplayItem
 import com.example.gestordegastos.domain.usecase.DeleteOperationUseCase
 import com.example.gestordegastos.domain.usecase.GetCategoriaByIdUseCase
+import com.example.gestordegastos.domain.usecase.GetDisplayOperationsUseCase
 import com.example.gestordegastos.domain.usecase.GetOperationsUseCase
 import com.example.gestordegastos.domain.usecase.GetPagedOperationsUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -24,7 +26,8 @@ class HomeViewModel @Inject constructor(
     private val getOperationsUseCase: GetOperationsUseCase,
     private val getCategoryByIdUseCase: GetCategoriaByIdUseCase,
     private val deleteOperationUseCase: DeleteOperationUseCase,
-    private val getPagedOperationsUseCase: GetPagedOperationsUseCase
+    private val getPagedOperationsUseCase: GetPagedOperationsUseCase,
+    private val getDisplayOperationsUseCase: GetDisplayOperationsUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -35,13 +38,14 @@ class HomeViewModel @Inject constructor(
     )
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    val income: Flow<PagingData<Operation>> = uiState.flatMapLatest { state ->
-        getPagedOperationsUseCase(2, state.startDate, state.endDate)
-    }.cachedIn(viewModelScope)
+    // Display items (operations + installments combined)
+    val expenses: StateFlow<List<OperationDisplayItem>> = uiState.flatMapLatest { state ->
+        getDisplayOperationsUseCase(1, state.startDate, state.endDate)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val bills: Flow<PagingData<Operation>> = uiState.flatMapLatest { state ->
-        getPagedOperationsUseCase(1, state.startDate, state.endDate)
-    }.cachedIn(viewModelScope)
+    val income: StateFlow<List<OperationDisplayItem>> = uiState.flatMapLatest { state ->
+        getDisplayOperationsUseCase(2, state.startDate, state.endDate)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         viewModelScope.launch {
@@ -59,16 +63,16 @@ class HomeViewModel @Inject constructor(
 
     private fun updateTotals(startDate: String, endDate: String) {
         viewModelScope.launch {
-            getOperationsUseCase().collectLatest { operations ->
-                val filteredOperations = operations.filter { op ->
-                    op.date >= startDate && op.date <= endDate
-                }
-                val income = filteredOperations.filter { it.typeOperationId == 2 }
-                val bills = filteredOperations.filter { it.typeOperationId == 1 }
-                val totalIncome = income.sumOf { it.amount }
-                val totalBills = bills.sumOf { it.amount }
+            // Combine regular operations and installments for totals calculation
+            combine(
+                getDisplayOperationsUseCase(1, startDate, endDate),
+                getDisplayOperationsUseCase(2, startDate, endDate)
+            ) { expenseItems, incomeItems ->
+                val totalBills = expenseItems.sumOf { it.amount }
+                val totalIncome = incomeItems.sumOf { it.amount }
                 val total = totalIncome - totalBills
-
+                Triple(total, totalIncome, totalBills)
+            }.collectLatest { (total, totalIncome, totalBills) ->
                 _uiState.update {
                     it.copy(
                         total = total,
@@ -111,3 +115,4 @@ data class HomeUiState(
     val startDate: String,
     val endDate: String
 )
+

@@ -17,5 +17,6 @@ data class OperationEntity(
     val amount: Double,
     val date: String,
     val category: Int,
-    @ColumnInfo(name = "type_operation") val typeOperation: Int
+    @ColumnInfo(name = "type_operation") val typeOperation: Int,
+    @ColumnInfo(name = "is_installment", defaultValue = "0") val isInstallment: Boolean = false
 )

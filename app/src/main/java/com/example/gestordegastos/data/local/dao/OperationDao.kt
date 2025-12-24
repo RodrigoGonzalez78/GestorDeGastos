@@ -36,4 +36,7 @@ interface OperationDao {
     @Query("SELECT * FROM operation WHERE date BETWEEN :startDate AND :endDate AND category = :categoryId")
     suspend fun getOperationsByDateRangeAndCategory(startDate: String, endDate: String, categoryId: Int): List<OperationEntity>
 
+    @Query("SELECT * FROM Operation WHERE id = :id")
+    suspend fun getById(id: Int): OperationEntity?
+
 }

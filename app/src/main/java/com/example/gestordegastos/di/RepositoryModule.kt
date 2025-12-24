@@ -1,10 +1,12 @@
 package com.example.gestordegastos.di
 
 import com.example.gestordegastos.data.repository.CategoryRepositoryImpl
+import com.example.gestordegastos.data.repository.InstallmentRepositoryImpl
 import com.example.gestordegastos.data.repository.OperationRepositoryImpl
 import com.example.gestordegastos.data.repository.OperationTypeRepositoryImpl
 import com.example.gestordegastos.data.repository.StatisticsRepositoryImpl
 import com.example.gestordegastos.domain.repository.CategoryRepository
+import com.example.gestordegastos.domain.repository.InstallmentRepository
 import com.example.gestordegastos.domain.repository.OperationRepository
 import com.example.gestordegastos.domain.repository.OperationTypeRepository
 import com.example.gestordegastos.domain.repository.StatisticsRepository
@@ -42,4 +44,10 @@ abstract class RepositoryModule {
     abstract fun bindStatisticsRepository(
         statisticsRepositoryImpl: StatisticsRepositoryImpl
     ): StatisticsRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindInstallmentRepository(
+        installmentRepositoryImpl: InstallmentRepositoryImpl
+    ): InstallmentRepository
 }
